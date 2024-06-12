@@ -46,9 +46,9 @@ export interface DefineCustomElementConfig {
 export function defineCustomElement<Props, RawBindings = object>(
   setup: (
     props: Readonly<Props>,
-    ctx: SetupContext
+    ctx: SetupContext,
   ) => RawBindings | RenderFunction,
-  config?: DefineCustomElementConfig
+  config?: DefineCustomElementConfig,
 ): VueElementConstructor<Props>
 
 // overload 2: object format with no props
@@ -80,7 +80,7 @@ export function defineCustomElement<
     II,
     S
   > & { styles?: string[] },
-  config?: DefineCustomElementConfig
+  config?: DefineCustomElementConfig,
 ): VueElementConstructor<Props>
 
 // overload 3: object format with array props declaration
@@ -112,7 +112,7 @@ export function defineCustomElement<
     II,
     S
   > & { styles?: string[] },
-  config?: DefineCustomElementConfig
+  config?: DefineCustomElementConfig,
 ): VueElementConstructor<{ [K in PropNames]: any }>
 
 // overload 4: object format with object props declaration
@@ -144,7 +144,7 @@ export function defineCustomElement<
     II,
     S
   > & { styles?: string[] },
-  config?: DefineCustomElementConfig
+  config?: DefineCustomElementConfig,
 ): VueElementConstructor<ExtractPropTypes<PropsOptions>>
 
 // overload 5: defining a custom element from the returned value of
@@ -157,7 +157,7 @@ export function defineCustomElement<P>(
 export function defineCustomElement(
   options: any,
   config?: DefineCustomElementConfig,
-  hydrate?: RootHydrateFunction
+  hydrate?: RootHydrateFunction,
 ): VueElementConstructor {
   const Comp = defineComponent(options) as any
   class VueCustomElement extends VueElement {
@@ -173,7 +173,7 @@ export function defineCustomElement(
 /*! #__NO_SIDE_EFFECTS__ */
 export const defineSSRCustomElement = ((
   options: any,
-  config?: DefineCustomElementConfig
+  config?: DefineCustomElementConfig,
 ) => {
   // @ts-expect-error
   return defineCustomElement(options, config, hydrate)
@@ -202,14 +202,14 @@ export class VueElement extends BaseClass {
     private _def: InnerComponentDef,
     private _props: Record<string, any> = {},
     private _config: DefineCustomElementConfig = {},
-    hydrate?: RootHydrateFunction
+    hydrate?: RootHydrateFunction,
   ) {
     super()
     this._config = extend(
       {
-        shadowRoot: true
+        shadowRoot: true,
       },
-      this._config
+      this._config,
     )
 
     if (this._config.shadowRoot) {
@@ -219,7 +219,7 @@ export class VueElement extends BaseClass {
         if (__DEV__ && this.shadowRoot) {
           warn(
             `Custom element has pre-rendered declarative shadow root but is not ` +
-              `defined as hydratable. Use \`defineSSRCustomElement\`.`
+              `defined as hydratable. Use \`defineSSRCustomElement\`.`,
           )
         }
         this.attachShadow({ mode: 'open' })
@@ -331,7 +331,7 @@ export class VueElement extends BaseClass {
       // replace slot
       if (!this._config.shadowRoot) {
         this._slots = Array.from(this.children).map(
-          n => n.cloneNode(true) as Element
+          n => n.cloneNode(true) as Element,
         )
         this.replaceChildren()
       }
@@ -423,24 +423,30 @@ export class VueElement extends BaseClass {
   }
 
   private _createVNode(): VNode<any, any> {
-    let childs = null
+    let childs: Record<string, unknown> | null = null
     // web components without shadow DOM do not supports native slot
     // so, we create a VNode based on the content of child nodes.
-    // NB: named slots are currently not supported
     if (!this._config.shadowRoot) {
-      childs = () => {
-        const toObj = (a: NamedNodeMap) => {
-          const res: Record<string, string | null> = {}
-          for (let i = 0, l = a.length; i < l; i++) {
-            const attr = a[i]
-            res[attr.nodeName] = attr.nodeValue
+      if (this._slots) {
+        childs = {}
+        this._slots.forEach(slot => {
+          const key =
+            slot.slot !== null && slot.slot.length ? slot.slot : 'default'
+          if (childs !== null) {
+            childs[key] = () => {
+              const toObj = (a: NamedNodeMap) => {
+                const res: Record<string, string | null> = {}
+                for (let i = 0, l = a.length; i < l; i++) {
+                  const attr = a[i]
+                  res[attr.nodeName] = attr.nodeValue
+                }
+                return res
+              }
+              const attrs = slot.attributes ? toObj(slot.attributes) : {}
+              attrs.innerHTML = slot.innerHTML
+              return createVNode(slot.tagName, attrs)
+            }
           }
-          return res
-        }
-        return this._slots!.map(ele => {
-          const attrs = ele.attributes ? toObj(ele.attributes) : {}
-          attrs.innerHTML = ele.innerHTML
-          return createVNode(ele.tagName, attrs, null)
         })
       }
     }
