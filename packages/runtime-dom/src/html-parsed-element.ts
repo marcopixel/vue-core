@@ -6,17 +6,17 @@ const HTMLParsedElement = (() => {
 
   const DCL = 'DOMContentLoaded'
   const init = new WeakMap()
-  // @ts-ignore
+  // @ts-expect-error
   const queue = []
   const isParsed = (el: Element) => {
     do {
       if (el.nextSibling) return true
-      // @ts-ignore
+      // @ts-expect-error
     } while ((el = el.parentNode))
     return false
   }
   const upgrade = () => {
-    // @ts-ignore
+    // @ts-expect-error
     queue.splice(0).forEach(info => {
       if (init.get(info[0]) !== true) {
         init.set(info[0], true)
@@ -28,7 +28,7 @@ const HTMLParsedElement = (() => {
   class HTMLParsedElement extends HTMLElement {
     static withParsedCallback(
       Class: CustomElementConstructor,
-      name = 'parsed'
+      name = 'parsed',
     ) {
       const { prototype } = Class
       const { connectedCallback } = prototype
@@ -37,7 +37,7 @@ const HTMLParsedElement = (() => {
         el: Element,
         observer: MutationObserver,
         ownerDocument: Document,
-        onDCL: EventListener
+        onDCL: EventListener,
       ) => {
         observer.disconnect()
         ownerDocument.removeEventListener(DCL, onDCL)
@@ -70,18 +70,18 @@ const HTMLParsedElement = (() => {
                 })
                 observer.observe(self.parentNode, {
                   childList: true,
-                  subtree: true
+                  subtree: true,
                 })
               }
             }
-          }
+          },
         },
         [name]: {
           configurable: true,
           get() {
             return init.get(this) === true
-          }
-        }
+          },
+        },
       })
       return Class
     }
