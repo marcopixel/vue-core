@@ -141,16 +141,16 @@ describe('defineCustomElement', () => {
         props: {
           msg: {
             type: String,
-            default: 'hello'
-          }
+            default: 'hello',
+          },
         },
         render() {
           return h('div', this.msg)
-        }
+        },
       },
       {
-        shadowRoot: false
-      }
+        shadowRoot: false,
+      },
     )
     customElements.define('my-el-shadowroot-false', E)
 
