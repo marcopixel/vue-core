@@ -1,27 +1,27 @@
 import {
-  ComponentOptionsMixin,
-  ComponentOptionsWithArrayProps,
-  ComponentOptionsWithObjectProps,
-  ComponentOptionsWithoutProps,
-  ComponentPropsOptions,
-  ComponentPublicInstance,
-  ComputedOptions,
-  EmitsOptions,
-  MethodOptions,
-  RenderFunction,
-  SetupContext,
-  ComponentInternalInstance,
-  VNode,
-  RootHydrateFunction,
-  ExtractPropTypes,
+  type ComponentInjectOptions,
+  type ComponentInternalInstance,
+  type ComponentOptions,
+  type ComponentOptionsMixin,
+  type ComponentOptionsWithArrayProps,
+  type ComponentOptionsWithObjectProps,
+  type ComponentOptionsWithoutProps,
+  type ComponentPropsOptions,
+  type ComputedOptions,
+  type ConcreteComponent,
+  type DefineComponent,
+  type EmitsOptions,
+  type ExtractPropTypes,
+  type MethodOptions,
+  type RenderFunction,
+  type RootHydrateFunction,
+  type SetupContext,
+  type SlotsType,
+  type VNode,
   createVNode,
   defineComponent,
   nextTick,
   warn,
-  ConcreteComponent,
-  ComponentOptions,
-  ComponentInjectOptions,
-  SlotsType
 } from '@vue/runtime-core'
 import { camelize, extend, hyphenate, isArray, toNumber } from '@vue/shared'
 import HTMLParsedElement from './html-parsed-element'
@@ -64,7 +64,7 @@ export function defineCustomElement<
   EE extends string = string,
   I extends ComponentInjectOptions = {},
   II extends string = string,
-  S extends SlotsType = {}
+  S extends SlotsType = {},
 >(
   options: ComponentOptionsWithoutProps<
     Props,
@@ -96,7 +96,7 @@ export function defineCustomElement<
   EE extends string = string,
   I extends ComponentInjectOptions = {},
   II extends string = string,
-  S extends SlotsType = {}
+  S extends SlotsType = {},
 >(
   options: ComponentOptionsWithArrayProps<
     PropNames,
@@ -128,7 +128,7 @@ export function defineCustomElement<
   EE extends string = string,
   I extends ComponentInjectOptions = {},
   II extends string = string,
-  S extends SlotsType = {}
+  S extends SlotsType = {},
 >(
   options: ComponentOptionsWithObjectProps<
     PropsOptions,
@@ -149,12 +149,9 @@ export function defineCustomElement<
 
 // overload 5: defining a custom element from the returned value of
 // `defineComponent`
-export function defineCustomElement(
-  options: {
-    new (...args: any[]): ComponentPublicInstance
-  },
-  config?: DefineCustomElementConfig
-): VueElementConstructor
+export function defineCustomElement<P>(
+  options: DefineComponent<P, any, any, any>,
+): VueElementConstructor<ExtractPropTypes<P>>
 
 /*! #__NO_SIDE_EFFECTS__ */
 export function defineCustomElement(
@@ -273,12 +270,12 @@ export class VueElement extends BaseClass {
 
   disconnectedCallback() {
     this._connected = false
-    if (this._ob) {
-      this._ob.disconnect()
-      this._ob = null
-    }
     nextTick(() => {
       if (!this._connected) {
+        if (this._ob) {
+          this._ob.disconnect()
+          this._ob = null
+        }
         render(null, this._root!)
         this._instance = null
       }
@@ -373,13 +370,13 @@ export class VueElement extends BaseClass {
         },
         set(val) {
           this._setProp(key, val)
-        }
+        },
       })
     }
   }
 
   protected _setAttr(key: string) {
-    let value = this.getAttribute(key)
+    let value = this.hasAttribute(key) ? this.getAttribute(key) : undefined
     const camelKey = camelize(key)
     if (this._numberProps && this._numberProps[camelKey]) {
       value = toNumber(value)
@@ -401,7 +398,7 @@ export class VueElement extends BaseClass {
     key: string,
     val: any,
     shouldReflect = true,
-    shouldUpdate = true
+    shouldUpdate = true,
   ) {
     if (val !== this._props[key]) {
       this._props[key] = val
@@ -471,8 +468,8 @@ export class VueElement extends BaseClass {
         const dispatch = (event: string, args: any[]) => {
           this.dispatchEvent(
             new CustomEvent(event, {
-              detail: args
-            })
+              detail: args,
+            }),
           )
         }
 
