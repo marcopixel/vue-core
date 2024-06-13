@@ -423,29 +423,39 @@ export class VueElement extends BaseClass {
   }
 
   private _createVNode(): VNode<any, any> {
-    let childs: Record<string, unknown> | null = null
+    let childs: Record<string, any> | null = null
     // web components without shadow DOM do not supports native slot
     // so, we create a VNode based on the content of child nodes.
     if (!this._config.shadowRoot) {
       if (this._slots) {
         childs = {}
         this._slots.forEach(slot => {
-          const key =
-            slot.slot !== null && slot.slot.length ? slot.slot : 'default'
-          if (childs !== null) {
-            childs[key] = () => {
-              const toObj = (a: NamedNodeMap) => {
-                const res: Record<string, string | null> = {}
-                for (let i = 0, l = a.length; i < l; i++) {
-                  const attr = a[i]
-                  res[attr.nodeName] = attr.nodeValue
-                }
-                return res
-              }
-              const attrs = slot.attributes ? toObj(slot.attributes) : {}
-              attrs.innerHTML = slot.innerHTML
-              return createVNode(slot.tagName, attrs)
+          const toObj = (a: NamedNodeMap) => {
+            const res: Record<string, string | null> = {}
+            for (let i = 0, l = a.length; i < l; i++) {
+              const attr = a[i]
+              res[attr.nodeName] = attr.nodeValue
             }
+            return res
+          }
+
+          // Ensure childs is an object
+          if (childs !== null) {
+            const key = slot.slot || 'default'
+
+            // Initialize childs[key] as a function returning an empty array
+            if (!childs[key]) {
+              childs[key] = () => []
+            }
+
+            // Create a vnode for the slot
+            const attrs = slot.attributes ? toObj(slot.attributes) : {}
+            attrs.innerHTML = slot.innerHTML
+            const vnode = createVNode(slot.tagName, attrs, null)
+
+            // Ensure childs[key] is a function that returns an array of vnodes
+            const existingVnodes = childs[key]()
+            childs[key] = () => [...existingVnodes, vnode]
           }
         })
       }
